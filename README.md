@@ -37,6 +37,13 @@ Despite these limitations, we are committed to **continuing development** and re
 
 ---
 
+### 🖥️ Project Demo Link
+
+Link: localhost:8000/Index.html
+
+Due to this project currently being hosted locally, the link may not be valid.
+
+---
 ### 🏁 Summary  
 This project demonstrates how **AI and mapping technologies** can be combined to provide real-world, practical solutions that improve community mobility and public awareness. 🌎💡  
 
