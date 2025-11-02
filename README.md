@@ -6,6 +6,9 @@
 **Team Members:** Christian Estrada, Michael Flores, Rean Supena, Ricardo Vela  
 
 ---
+### 🎥 Project Demo Video
+
+[![Watch the video](https://img.youtube.com/vi/X_HlqYLm7Xk/0.jpg)](https://youtu.be/X_HlqYLm7Xk)
 
 ### 📍 Project Overview  
 For the **2025 Islander Hackathon**, our team developed a program addressing the ongoing issue of **road construction across Corpus Christi**. 🏗️  
