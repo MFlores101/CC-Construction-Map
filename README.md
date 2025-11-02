@@ -1,4 +1,3 @@
-# CC-Construction-Map
 # 🚦 2025 Islander Hackathon Project  
 ## 🧠 Corpus Christi Road Construction AI  
 
