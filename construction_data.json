@@ -1,0 +1,155 @@
+[
+  {
+    "location": "Aaron Drive – Saratoga Boulevard to Summer Wind Drive",
+    "type": "road work",
+    "description": "Limited to one-way northbound traffic.",
+    "dates": "Through November 2025, completion scheduled for March 2026.",
+    "impact": "One-way traffic.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Alameda Street – Louisiana Avenue to Texan Trail",
+    "type": "road work",
+    "description": "Northbound lanes closed; traffic redirected to two-way, single-lane traffic within the southbound lanes.",
+    "dates": "",
+    "impact": "Traffic redirection.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Bonner Drive – Everhart Road to Flynn Parkway",
+    "type": "road reconstruction",
+    "description": "New asphalt pavement, curbs, gutters, sidewalks, and streetlight improvements.",
+    "dates": "Estimated completion in December 2025.",
+    "impact": "",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Brownlee Boulevard – Staples Street to Morgan Avenue",
+    "type": "road work",
+    "description": "Lane closures.",
+    "dates": "Expected to continue through October 2025.",
+    "impact": "Lane closures.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Calallen Drive—Redbird Lane",
+    "type": "road work",
+    "description": "Reduced to one lane; no left turn from Redbird Lane onto Calallen Drive.",
+    "dates": "",
+    "impact": "One lane traffic; no left turn allowed.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Commodores Drive – East Cabana Street and Compass Street",
+    "type": "road work",
+    "description": "Westbound traffic redirected to the newly constructed bridge.",
+    "dates": "",
+    "impact": "Periodic lane closures.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Everhart Road – SPID",
+    "type": "utility work",
+    "description": "Construction on water line improvements.",
+    "dates": "Ongoing.",
+    "impact": "Northbound Everhart Road closed; traffic detoured on Corona Drive.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Huntwick Avenue – South Staples Street near H-E-B plus!",
+    "type": "road reconstruction",
+    "description": "Street reconstruction.",
+    "dates": "Scheduled through November 2025.",
+    "impact": "Street closure.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Megal Drive – Everhart Road and Thundersee Drive",
+    "type": "road work",
+    "description": "Construction in the 4700 block; a small section closed.",
+    "dates": "",
+    "impact": "Section of road closed.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Norton Street – Ramsey Street and Cambridge Drive",
+    "type": "road work",
+    "description": "Traffic will be one-way westbound.",
+    "dates": "Expected to last through December 2025.",
+    "impact": "One-way traffic.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Nueces Bay Boulevard – I-37 to West Broadway Street",
+    "type": "road work",
+    "description": "Eastbound lanes closed; two-way traffic on the west side.",
+    "dates": "",
+    "impact": "Eastbound lanes closed.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Oso Parkway – Bar-Le-Doc Drive",
+    "type": "storm water maintenance",
+    "description": "Replacing drainage infrastructure.",
+    "dates": "",
+    "impact": "Temporary full street closure.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Timbergate Drive – South Staples Street to Snowgoose Road",
+    "type": "road work",
+    "description": "One-way eastbound traffic.",
+    "dates": "",
+    "impact": "One-way traffic.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Townsend Street – Gollihar Road to Horne Road",
+    "type": "road work",
+    "description": "Closed to through traffic; residents have access.",
+    "dates": "Scheduled to continue through September 2025.",
+    "impact": "Closure to through traffic.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Yorktown Boulevard – Rodd Field Road to Oso Creek Mud Bridge",
+    "type": "road work",
+    "description": "Construction underway; westbound lanes closed.",
+    "dates": "",
+    "impact": "Traffic redirected to eastbound lanes.",
+    "status": "ongoing",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "Lomax Street – North Mesquite Street to North Chaparral Street",
+    "type": "building renovation",
+    "description": "Renovation of first floor at TAMUCC.",
+    "dates": "Approximately 30 days.",
+    "impact": "Two dumpsters on site.",
+    "status": "upcoming",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  },
+  {
+    "location": "John Sartain Street – North Chaparral Street to North Water Street",
+    "type": "building renovation",
+    "description": "Renovation of the exterior fascia of the Education Service Center.",
+    "dates": "Expected to last several weeks.",
+    "impact": "Temporary occupancy of parking spaces.",
+    "status": "upcoming",
+    "source_url": "https://www.corpuschristitx.gov/department-directory/public-works/street-closures-and-traffic-impacts/street-closures-and-traffic-impacts-october-31-2025/"
+  }
+]

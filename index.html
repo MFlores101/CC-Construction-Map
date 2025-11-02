@@ -3,63 +3,1721 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corpus Christi Map Viewer</title>
+    <title>Corpus Christi Construction Map</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Google Maps JavaScript API -->
+    <!-- Replace YOUR_GOOGLE_MAPS_API_KEY with your actual API key -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry"></script>
     <style>
         /* Custom styles for the map container */
         .map-container {
-            /* Full height of the viewport minus the header's approximate height (64px = h-16) */
-            height: calc(100vh - 64px);
+            height: calc(100vh - 320px);
+            min-height: 500px;
+        }
+        
+        @media (max-width: 768px) {
+            .map-container {
+                height: calc(100vh - 400px);
+                min-height: 400px;
+            }
         }
         /* Set the Inter font globally */
         body {
             font-family: 'Inter', sans-serif;
         }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .info-window-content {
+            font-family: 'Inter', sans-serif;
+        }
+        input:disabled {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+        .dark input:disabled {
+            background-color: #374151;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .legend-color {
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .legend-color {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 antialiased transition-colors duration-300">
 
     <!-- Header -->
-    <header class="bg-cyan-700 shadow-lg h-16 flex items-center justify-center sticky top-0 z-10">
-        <div class="text-center">
-            <h1 class="text-3xl font-extrabold text-white tracking-tight">
-                Corpus Christi, Texas 📍
+    <header class="bg-cyan-700 dark:bg-cyan-900 shadow-lg h-20 flex items-center justify-between px-4 sticky top-0 z-10">
+        <div class="flex items-center gap-3 flex-1 justify-center">
+            <!-- Logo -->
+            <div class="flex-shrink-0">
+                <svg width="70" height="70" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                    <defs>
+                        <style>
+                            .gear-dark { fill: #0e7490; stroke: #0891b2; }
+                            .dark .gear-dark { fill: #67e8f9; stroke: #22d3ee; }
+                            .building-dark { fill: #06b6d4; }
+                            .dark .building-dark { fill: #22d3ee; }
+                            .banner-dark { fill: #0e7490; }
+                            .dark .banner-dark { fill: #67e8f9; }
+                        </style>
+                    </defs>
+                    
+                    <!-- Gear (semi-circle upper frame) -->
+                    <g class="gear-dark">
+                        <!-- Gear teeth pattern for top half -->
+                        <path d="M 30 50 Q 25 45, 30 40 L 35 38 Q 38 42, 35 46 Z" fill="inherit" stroke="inherit" stroke-width="0.5"/>
+                        <path d="M 40 50 Q 38 42, 42 38 L 45 35 Q 48 40, 45 45 Z" fill="inherit" stroke="inherit" stroke-width="0.5"/>
+                        <path d="M 50 48 Q 48 40, 52 38 L 55 35 Q 58 40, 55 45 Z" fill="inherit" stroke="inherit" stroke-width="0.5"/>
+                        <path d="M 60 50 Q 58 42, 62 38 L 65 35 Q 68 40, 65 45 Z" fill="inherit" stroke="inherit" stroke-width="0.5"/>
+                        <path d="M 70 50 Q 68 42, 72 38 Q 75 45, 70 46 Z" fill="inherit" stroke="inherit" stroke-width="0.5"/>
+                        
+                        <!-- Main gear arc (upper semicircle) -->
+                        <path d="M 30 50 Q 50 20, 70 50" fill="none" stroke="inherit" stroke-width="3"/>
+                        <!-- Inner border circle -->
+                        <circle cx="50" cy="50" r="38" fill="none" stroke="inherit" stroke-width="2"/>
+                    </g>
+                    
+                    <!-- Cityscape buildings inside gear -->
+                    <g class="buildings-group">
+                        <!-- Building 1 (left) -->
+                        <rect x="22" y="48" width="7" height="10" class="building-dark" rx="0.5"/>
+                        <!-- Building 2 (left-center) with orange stripe -->
+                        <rect x="32" y="43" width="7" height="15" class="building-dark" rx="0.5"/>
+                        <rect x="34" y="47" width="3" height="11" fill="#ff6b35" class="dark:fill-orange-400"/>
+                        <!-- Building 3 (center) - tallest -->
+                        <rect x="44" y="38" width="7" height="20" class="building-dark" rx="0.5"/>
+                        <!-- Building 4 (right-center) -->
+                        <rect x="56" y="45" width="7" height="13" class="building-dark" rx="0.5"/>
+                        <!-- Building 5 (right) with horizontal window stripes -->
+                        <rect x="68" y="41" width="7" height="17" class="building-dark" rx="0.5"/>
+                        <line x1="70" y1="44" x2="73" y2="44" stroke="#67e8f9" stroke-width="0.6" class="dark:stroke-cyan-100"/>
+                        <line x1="70" y1="47" x2="73" y2="47" stroke="#67e8f9" stroke-width="0.6" class="dark:stroke-cyan-100"/>
+                        <line x1="70" y1="50" x2="73" y2="50" stroke="#67e8f9" stroke-width="0.6" class="dark:stroke-cyan-100"/>
+                        <line x1="70" y1="53" x2="73" y2="53" stroke="#67e8f9" stroke-width="0.6" class="dark:stroke-cyan-100"/>
+                    </g>
+                    
+                    <!-- Crane hook (orange) at top -->
+                    <g>
+                        <path d="M 47 25 L 53 25 L 50 30 Z" fill="#ff6b35" class="dark:fill-orange-400"/>
+                        <line x1="50" y1="25" x2="50" y2="38" stroke="#ff6b35" stroke-width="1.2" class="dark:stroke-orange-400"/>
+                    </g>
+                    
+                    <!-- CC Banner (oval) -->
+                    <ellipse cx="50" cy="62" rx="14" ry="5" class="banner-dark"/>
+                    <text x="50" y="64" font-family="Arial, sans-serif" font-size="10" font-weight="bold" 
+                          fill="white" text-anchor="middle" class="dark:fill-gray-900">CC</text>
+                    
+                    <!-- Curved line below gear -->
+                    <path d="M 25 70 Q 50 75, 75 70" stroke="inherit" stroke-width="2.5" fill="none" class="gear-dark"/>
+                </svg>
+            </div>
+            
+            <!-- Title with logo styling -->
+            <div class="flex flex-col items-start">
+                <h1 class="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+                    <span class="text-white dark:text-cyan-100">CONSTRUCTION</span>
+                    <span class="text-green-400 dark:text-green-300">MAP</span>
             </h1>
+                <p class="text-xs text-cyan-100 dark:text-cyan-200 opacity-90">Corpus Christi</p>
         </div>
+        </div>
+        
+        <button id="darkModeToggle" onclick="toggleDarkMode()" 
+                class="p-2 rounded-lg bg-cyan-600 dark:bg-cyan-800 hover:bg-cyan-500 dark:hover:bg-cyan-700 text-white transition-all shadow-md hover:shadow-lg">
+            <svg id="sunIcon" class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <svg id="moonIcon" class="w-6 h-6 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+            </svg>
+        </button>
     </header>
 
     <!-- Main Content / Map Area -->
     <main class="p-4 md:p-6 flex flex-col items-center">
-        <!-- Info Card -->
-        <div class="w-full max-w-4xl mb-6 bg-white p-4 sm:p-6 rounded-xl shadow-lg border-t-4 border-cyan-500">
-            <p class="text-gray-900 text-sm sm:text-base">
-                See the construction nearby in the Corpus Christi area.
-            </p>
+        <!-- Route Input Panel -->
+        <div class="w-full max-w-6xl mb-6 bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg border-t-4 border-cyan-500 dark:border-cyan-600 transition-colors duration-300">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Route Planner</h2>
+                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>17 active construction zones</span>
+        </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span class="flex items-center gap-1">
+                            <span>Start Location</span>
+                            <button onclick="useCurrentLocation('start')" 
+                                    class="ml-2 text-xs px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 rounded hover:bg-cyan-200 dark:hover:bg-cyan-800 transition-colors flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                </svg>
+                                Current
+                            </button>
+                        </span>
+                    </label>
+                    <input type="text" id="startInput" placeholder="Enter start address or click Current" 
+                           class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 focus:border-cyan-500 dark:focus:border-cyan-400 transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500">
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span class="flex items-center gap-1">
+                            <span>End Location</span>
+                            <button onclick="useCurrentLocation('end')" 
+                                    class="ml-2 text-xs px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 rounded hover:bg-cyan-200 dark:hover:bg-cyan-800 transition-colors flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                </svg>
+                                Current
+                            </button>
+                        </span>
+                    </label>
+                    <input type="text" id="endInput" placeholder="Enter destination or click Current" 
+                           class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:focus:ring-cyan-400 focus:border-cyan-500 dark:focus:border-cyan-400 transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500">
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                <!-- Avoid Construction Button -->
+                <button type="button" onclick="calculateRoute(true)" id="avoidConstructionBtn"
+                        style="background: linear-gradient(to right, #0891b2, #0e7490); border: 2px solid #06b6d4; padding: 1rem 1.5rem; border-radius: 0.75rem; color: white; font-weight: 700; font-size: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex: 1; min-width: 180px; cursor: pointer; transition: all 0.2s;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span style="white-space: nowrap;">Avoid Construction</span>
+                </button>
+                
+                <!-- Direct Route Button -->
+                <button type="button" onclick="calculateRoute(false)" id="directRouteBtn"
+                        style="background-color: #374151; border: 2px solid #4b5563; padding: 1rem 1.5rem; border-radius: 0.75rem; color: white; font-weight: 700; font-size: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex: 1; min-width: 140px; cursor: pointer; transition: all 0.2s;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                    <span style="white-space: nowrap;">Direct Route</span>
+                </button>
+                
+                <!-- Clear Button -->
+                <button type="button" onclick="clearRoute()" id="clearRouteBtn"
+                        style="background-color: #dc2626; border: 2px solid #ef4444; padding: 1rem 1.5rem; border-radius: 0.75rem; color: white; font-weight: 700; font-size: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex: 1; min-width: 100px; cursor: pointer; transition: all 0.2s;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    <span style="white-space: nowrap;">Clear</span>
+                </button>
+            </div>
+            <div id="routeInfo" class="mt-4 p-4 rounded-xl border-2 hidden transition-all shadow-md dark:border-gray-600">
+                <p class="text-base font-semibold flex items-center gap-3" id="routeWarning"></p>
+            </div>
+            
+            <!-- Route Summary (when route is active) -->
+            <div id="routeSummary" class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg hidden transition-all">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm font-semibold text-blue-800 dark:text-blue-300" id="routeDistance"></span>
+                        <span class="text-sm font-medium text-blue-600 dark:text-blue-400">•</span>
+                        <span class="text-sm font-semibold text-blue-600 dark:text-blue-400" id="routeDuration"></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="openInGoogleMaps()" 
+                                class="px-3 py-1.5 bg-blue-600 dark:bg-blue-700 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all flex items-center gap-1.5 shadow-md">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                            Google Maps
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Responsive Map Iframe Container -->
-        <div class="w-full max-w-6xl rounded-xl shadow-2xl overflow-hidden ring-4 ring-cyan-600/50 map-container">
-            <!--
-                Google Maps Embed for Corpus Christi, TX
-                The map is set to full width and height of its parent container.
-            -->
-            <iframe
-                class="w-full h-full border-0"
-                loading="lazy"
-                allowfullscreen
-                referrerpolicy="no-referrer-when-downgrade"
-                src="https://www.google.com/maps/embed/v1/place?key=&q=Corpus+Christi,+TX&zoom=10"
-                aria-label="Interactive map of Corpus Christi, Texas"
-            ></iframe>
+        <!-- Map Container with Legend -->
+        <div class="w-full max-w-6xl rounded-xl shadow-2xl overflow-hidden ring-4 ring-cyan-600/50 dark:ring-cyan-700/50 map-container relative transition-colors duration-300">
+            <!-- Map -->
+            <div id="map"></div>
+            
+            <!-- Legend -->
+            <div class="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 z-10 max-w-xs border border-gray-200 dark:border-gray-700 transition-colors duration-300">
+                <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-2 text-sm">Construction Types</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF6B35;"></div>
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Road Work</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #C1121F;"></div>
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Road Reconstruction</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #0066CC;"></div>
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Utility Work</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #06B6D4;"></div>
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Storm Water</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #9333EA;"></div>
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Building Renovation</span>
+                </div>
+            </div>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="mt-8 p-4 text-center text-gray-500 text-xs border-t border-gray-200">
+    <footer class="mt-8 p-4 text-center text-gray-500 dark:text-gray-400 text-xs border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
         Map data sourced from Google Maps. Designed with Tailwind CSS.
     </footer>
+
+    <script>
+        // Construction type color mapping
+        const constructionTypeColors = {
+            'road work': '#FF6B35',
+            'road reconstruction': '#C1121F',
+            'utility work': '#0066CC',
+            'storm water maintenance': '#06B6D4',
+            'building renovation': '#9333EA'
+        };
+
+        // Initialize map centered on Corpus Christi
+        let map;
+        let geocoder;
+        let directionsService;
+        let directionsRenderer;
+        let polylines = [];
+        let markers = [];
+        let routePolyline = null;
+        let autocompleteService;
+        let constructionZones = [];
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 27.8006, lng: -97.3964 },
+                zoom: 11,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels",
+                        stylers: [{ visibility: "off" }]
+                    }
+                ]
+            });
+
+            geocoder = new google.maps.Geocoder();
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                suppressMarkers: false,
+                suppressPolylines: false,
+                polylineOptions: {
+                    strokeColor: '#3B82F6',
+                    strokeWeight: 6,
+                    strokeOpacity: 0.9
+                },
+                markerOptions: {
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    }
+                }
+            });
+            autocompleteService = new google.maps.places.AutocompleteService();
+            
+            // Initialize autocomplete for address inputs
+            initializeAutocomplete();
+            
+            // Load and display construction data
+            loadConstructionData();
+        }
+        
+        function initializeAutocomplete() {
+            const startInput = document.getElementById('startInput');
+            const endInput = document.getElementById('endInput');
+            
+            // Set bounds to Corpus Christi area
+            const corpusChristiBounds = new google.maps.LatLngBounds(
+                new google.maps.LatLng(27.6, -97.6),
+                new google.maps.LatLng(28.0, -97.2)
+            );
+            
+            const startAutocomplete = new google.maps.places.Autocomplete(startInput, {
+                bounds: corpusChristiBounds,
+                componentRestrictions: { country: 'us' },
+                fields: ['formatted_address', 'geometry']
+            });
+            
+            const endAutocomplete = new google.maps.places.Autocomplete(endInput, {
+                bounds: corpusChristiBounds,
+                componentRestrictions: { country: 'us' },
+                fields: ['formatted_address', 'geometry']
+            });
+            
+            // Add place changed listeners
+            startAutocomplete.addListener('place_changed', () => {
+                const place = startAutocomplete.getPlace();
+                if (place.geometry) {
+                    console.log('Start location selected:', place.formatted_address);
+                }
+            });
+            
+            endAutocomplete.addListener('place_changed', () => {
+                const place = endAutocomplete.getPlace();
+                if (place.geometry) {
+                    console.log('End location selected:', place.formatted_address);
+                }
+            });
+        }
+        
+        function useCurrentLocation(type) {
+            const inputElement = document.getElementById(type === 'start' ? 'startInput' : 'endInput');
+            inputElement.value = 'Getting location...';
+            inputElement.disabled = true;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const location = new google.maps.LatLng(lat, lng);
+                        
+                        // Reverse geocode to get address
+                        geocoder.geocode({ location: location }, (results, status) => {
+                            if (status === 'OK' && results[0]) {
+                                inputElement.value = results[0].formatted_address;
+                                inputElement.disabled = false;
+                                
+                                // Show success message
+                                showLocationSuccess(type);
+                            } else {
+                                inputElement.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                                inputElement.disabled = false;
+                                showLocationSuccess(type);
+                            }
+                        });
+                    },
+                    (error) => {
+                        inputElement.value = '';
+                        inputElement.disabled = false;
+                        let errorMsg = 'Unable to get your location. ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMsg += 'Please allow location access.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMsg += 'Location unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMsg += 'Request timed out.';
+                                break;
+                        }
+                        alert(errorMsg);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                inputElement.value = '';
+                inputElement.disabled = false;
+                alert('Geolocation is not supported by your browser.');
+            }
+        }
+        
+        function showLocationSuccess(type) {
+            // Briefly highlight the input field
+            const inputElement = document.getElementById(type === 'start' ? 'startInput' : 'endInput');
+            inputElement.classList.add('ring-2', 'ring-green-400');
+            setTimeout(() => {
+                inputElement.classList.remove('ring-2', 'ring-green-400');
+            }, 2000);
+        }
+
+        function loadConstructionData() {
+            fetch('construction_data.json')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`Loaded ${data.length} construction projects`);
+                    data.forEach((project, index) => {
+                        // Add delay to avoid rate limiting
+                        setTimeout(() => {
+                            highlightRoad(project);
+                        }, index * 200);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading construction data:', error);
+                    document.getElementById('map').innerHTML = 
+                        '<div class="flex items-center justify-center h-full"><p class="text-red-600">Error loading construction data. Make sure construction_data.json exists.</p></div>';
+                });
+        }
+
+        function parseLocation(locationStr) {
+            // Parse location strings like:
+            // "Aaron Drive – Saratoga Boulevard to Summer Wind Drive"
+            // "Everhart Road – SPID"
+            // "Calallen Drive—Redbird Lane"
+            // "Brownlee Boulevard – Staples Street to Morgan Avenue"
+            
+            // Check for "to" separator (indicates start and end)
+            if (locationStr.toLowerCase().includes(' to ')) {
+                const toIndex = locationStr.toLowerCase().indexOf(' to ');
+                const beforeTo = locationStr.substring(0, toIndex).trim();
+                const afterTo = locationStr.substring(toIndex + 4).trim();
+                
+                // Split the first part to get road name and start
+                const separators = ['–', '—', '-'];
+                for (let sep of separators) {
+                    if (beforeTo.includes(sep)) {
+                        const parts = beforeTo.split(sep).map(p => p.trim());
+                        return {
+                            roadName: parts[0],
+                            startPoint: parts[1] || null,
+                            endPoint: afterTo,
+                            singlePoint: null
+                        };
+                    }
+                }
+            }
+            
+            // Check for single separator (intersection or single point)
+            const separators = ['–', '—', '-'];
+            for (let sep of separators) {
+                if (locationStr.includes(sep)) {
+                    const parts = locationStr.split(sep).map(p => p.trim());
+                    if (parts.length >= 2) {
+                        return {
+                            roadName: parts[0],
+                            startPoint: parts[1],
+                            endPoint: parts.length >= 3 ? parts[2] : null,
+                            singlePoint: null
+                        };
+                    }
+                }
+            }
+            
+            // No separator found, treat as single location
+            return {
+                roadName: locationStr,
+                startPoint: null,
+                endPoint: null,
+                singlePoint: locationStr
+            };
+        }
+
+        function highlightRoad(project) {
+            const parsed = parseLocation(project.location);
+            const color = constructionTypeColors[project.type] || '#808080';
+            
+            // If it's a road segment with start and end points
+            if (parsed.startPoint && parsed.endPoint) {
+                const startAddr = `${parsed.roadName} & ${parsed.startPoint}, Corpus Christi, TX`;
+                const endAddr = `${parsed.roadName} & ${parsed.endPoint}, Corpus Christi, TX`;
+                
+                // Geocode both points and draw polyline
+                Promise.all([
+                    geocodeAddress(startAddr),
+                    geocodeAddress(endAddr)
+                ]).then(([startLoc, endLoc]) => {
+                    if (startLoc && endLoc) {
+                        drawRoadSegment(startLoc, endLoc, color, project);
+                    } else {
+                        // Fallback: try geocoding the entire road
+                        fallbackGeocode(project.location, color, project);
+                    }
+                }).catch(() => {
+                    fallbackGeocode(project.location, color, project);
+                });
+            }
+            // If it's a single intersection point
+            else if (parsed.singlePoint || parsed.startPoint) {
+                const point = parsed.singlePoint || `${parsed.roadName} & ${parsed.startPoint}`;
+                const address = `${point}, Corpus Christi, TX`;
+                
+                geocodeAddress(address).then(location => {
+                    if (location) {
+                        // For single points, draw a wider circle around the area
+                        drawRoadArea(location, color, project);
+                    } else {
+                        fallbackGeocode(project.location, color, project);
+                    }
+                }).catch(() => {
+                    fallbackGeocode(project.location, color, project);
+                });
+            } else {
+                fallbackGeocode(project.location, color, project);
+            }
+        }
+
+        function geocodeAddress(address) {
+            return new Promise((resolve) => {
+                geocoder.geocode({ address: address }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        resolve(results[0].geometry.location);
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
+        }
+
+        function drawRoadSegment(startLoc, endLoc, color, project) {
+            // Use Directions API to get the actual road path
+            directionsService.route({
+                origin: startLoc,
+                destination: endLoc,
+                travelMode: google.maps.TravelMode.DRIVING,
+                avoidHighways: false,
+                avoidTolls: false
+            }, (result, status) => {
+                if (status === 'OK' && result.routes && result.routes.length > 0) {
+                    const route = result.routes[0];
+                    const path = route.overview_path;
+                    
+                    // Create polyline along the road
+                    const polyline = new google.maps.Polyline({
+                        path: path,
+                        geodesic: true,
+                        strokeColor: color,
+                        strokeOpacity: 0.8,
+                        strokeWeight: 8,
+                        map: map
+                    });
+                    
+                    // Add click event to show info
+                    polyline.addListener('click', () => {
+                        showInfoWindow(polyline.getPath().getAt(Math.floor(polyline.getPath().getLength() / 2)), project);
+                    });
+                    
+                    polylines.push(polyline);
+                    constructionZones.push({
+                        type: 'segment',
+                        path: path,
+                        polyline: polyline,
+                        project: project,
+                        color: color
+                    });
+                    
+                    // Add markers at endpoints
+                    addEndpointMarker(startLoc, color, project);
+                    addEndpointMarker(endLoc, color, project);
+                } else {
+                    // Fallback: draw straight line if directions fail
+                    drawStraightLine(startLoc, endLoc, color, project);
+                }
+            });
+        }
+
+        function drawStraightLine(startLoc, endLoc, color, project) {
+            const polyline = new google.maps.Polyline({
+                path: [startLoc, endLoc],
+                geodesic: true,
+                strokeColor: color,
+                strokeOpacity: 0.8,
+                strokeWeight: 8,
+                map: map
+            });
+            
+            polyline.addListener('click', () => {
+                const midLat = (startLoc.lat() + endLoc.lat()) / 2;
+                const midLng = (startLoc.lng() + endLoc.lng()) / 2;
+                showInfoWindow(new google.maps.LatLng(midLat, midLng), project);
+            });
+            
+            polylines.push(polyline);
+            constructionZones.push({
+                type: 'segment',
+                path: [startLoc, endLoc],
+                polyline: polyline,
+                project: project,
+                color: color
+            });
+            
+            addEndpointMarker(startLoc, color, project);
+            addEndpointMarker(endLoc, color, project);
+        }
+
+        function drawRoadArea(location, color, project) {
+            // Draw a circle to represent the construction area
+            const circle = new google.maps.Circle({
+                strokeColor: color,
+                strokeOpacity: 0.9,
+                strokeWeight: 8,
+                fillColor: color,
+                fillOpacity: 0.4,
+                map: map,
+                center: location,
+                radius: 300 // 300 meters radius for better visibility
+            });
+            
+            circle.addListener('click', () => {
+                showInfoWindow(location, project);
+            });
+            
+            // Also add a marker
+            addEndpointMarker(location, color, project);
+            
+            // Store circle in construction zones
+            constructionZones.push({
+                type: 'circle',
+                center: location,
+                radius: 300,
+                circle: circle,
+                project: project,
+                color: color
+            });
+        }
+
+        function addEndpointMarker(location, color, project) {
+            const marker = new google.maps.Marker({
+                position: location,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 6,
+                    fillColor: color,
+                    fillOpacity: 1,
+                    strokeColor: '#FFFFFF',
+                    strokeWeight: 2
+                }
+            });
+            
+            marker.addListener('click', () => {
+                showInfoWindow(location, project);
+            });
+            
+            markers.push(marker);
+        }
+
+        function fallbackGeocode(locationStr, color, project) {
+            // Fallback: geocode the full location string
+            let address = locationStr;
+            if (!address.toLowerCase().includes('corpus christi')) {
+                address = `${address}, Corpus Christi, TX`;
+            }
+            
+            geocodeAddress(address).then(location => {
+                if (location) {
+                    drawRoadArea(location, color, project);
+                }
+            });
+        }
+
+        let currentInfoWindow = null;
+        let currentRouteData = null; // Store current route for external maps
+
+        function showInfoWindow(position, project) {
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+            
+            const infoWindow = new google.maps.InfoWindow({
+                content: createInfoWindowContent(project),
+                position: position
+            });
+            
+            infoWindow.open(map);
+            currentInfoWindow = infoWindow;
+        }
+
+        function createInfoWindowContent(project) {
+            const typeColor = constructionTypeColors[project.type] || '#808080';
+            const isDark = document.documentElement.classList.contains('dark');
+            const bgColor = isDark ? '#1F2937' : '#FFFFFF';
+            const textColor = isDark ? '#F3F4F6' : '#1F2937';
+            const secondaryText = isDark ? '#9CA3AF' : '#4B5563';
+            const mutedText = isDark ? '#6B7280' : '#6B7280';
+            
+            return `
+                <div class="info-window-content" style="font-family: 'Inter', sans-serif; max-width: 300px; background-color: ${bgColor}; color: ${textColor}; padding: 8px;">
+                    <h3 style="font-weight: 600; font-size: 16px; margin-bottom: 8px; color: ${textColor};">
+                        ${escapeHtml(project.location)}
+                    </h3>
+                    <div style="margin-bottom: 8px;">
+                        <span style="background-color: ${typeColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+                            ${escapeHtml(project.type)}
+                        </span>
+                    </div>
+                    ${project.description ? `<p style="font-size: 14px; color: ${secondaryText}; margin: 8px 0;">${escapeHtml(project.description)}</p>` : ''}
+                    ${project.dates ? `<p style="font-size: 13px; color: ${mutedText}; margin: 4px 0;"><strong>Dates:</strong> ${escapeHtml(project.dates)}</p>` : ''}
+                    ${project.impact ? `<p style="font-size: 13px; color: #DC2626; margin: 4px 0;"><strong>Impact:</strong> ${escapeHtml(project.impact)}</p>` : ''}
+                    <p style="font-size: 12px; color: ${mutedText}; margin-top: 8px;">
+                        Status: <span style="font-weight: 600; text-transform: capitalize;">${escapeHtml(project.status)}</span>
+                    </p>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Routing functions
+        async function calculateRoute(avoidConstruction) {
+            const startAddress = document.getElementById('startInput').value;
+            const endAddress = document.getElementById('endInput').value;
+            
+            if (!startAddress || !endAddress) {
+                alert('Please enter both start and end locations');
+                return;
+            }
+            
+            // Show loading state
+            const routeInfo = document.getElementById('routeInfo');
+            const routeWarning = document.getElementById('routeWarning');
+            routeWarning.innerHTML = '<svg class="animate-spin w-5 h-5 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Calculating route...';
+            routeWarning.className = 'text-sm text-blue-700 flex items-center gap-2';
+            routeInfo.className = 'mt-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg';
+            routeInfo.classList.remove('hidden');
+            
+            // Disable buttons during calculation
+            const buttons = document.querySelectorAll('button[onclick*="calculateRoute"]');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Clear previous route
+            clearRoute();
+            
+            try {
+                // Geocode addresses
+                const [startResult, endResult] = await Promise.all([
+                    geocodeAddressPromise(startAddress),
+                    geocodeAddressPromise(endAddress)
+                ]);
+                
+                if (!startResult || !endResult) {
+                    alert('Could not find one or both locations. Please try more specific addresses.');
+                    return;
+                }
+                
+                const startLoc = startResult;
+                const endLoc = endResult;
+                
+                if (avoidConstruction && constructionZones.length > 0) {
+                    // First, calculate direct route to see what it intersects
+                    directionsService.route({
+                        origin: startLoc,
+                        destination: endLoc,
+                        travelMode: google.maps.TravelMode.DRIVING,
+                        avoidHighways: false,
+                        avoidTolls: false
+                    }, (directResult, directStatus) => {
+                        if (directStatus === 'OK') {
+                            const directRoute = directResult.routes[0];
+                            const directPath = directRoute.overview_path;
+                            const intersectingZones = checkRouteIntersections(directPath);
+                            
+                            if (intersectingZones.length > 0) {
+                                // Build waypoints to avoid intersections
+                                const waypoints = buildAvoidanceWaypoints(startLoc, endLoc, directPath, intersectingZones);
+                                
+                                // Calculate route with avoidance waypoints
+                                // Use optimizeWaypoints to find shortest path through waypoints
+                                directionsService.route({
+                                    origin: startLoc,
+                                    destination: endLoc,
+                                    waypoints: waypoints.length > 0 ? waypoints : undefined,
+                                    optimizeWaypoints: waypoints.length > 0 && waypoints.length <= 8, // Optimize if reasonable number
+                                    travelMode: google.maps.TravelMode.DRIVING,
+                                    avoidHighways: false,
+                                    avoidTolls: false,
+                                    provideRouteAlternatives: true // Get multiple route options to find best
+                                }, (avoidResult, avoidStatus) => {
+                                    if (avoidStatus === 'OK') {
+                                        // Find the shortest route that avoids construction
+                                        let bestRoute = avoidResult.routes[0];
+                                        let bestRoutePath = bestRoute.overview_path;
+                                        let bestIntersections = checkRouteIntersections(bestRoutePath);
+                                        let bestDistance = bestRoute.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                        
+                                        // If alternatives exist, find the shortest one that avoids construction
+                                        if (avoidResult.routes.length > 1) {
+                                            for (const route of avoidResult.routes) {
+                                                const routePath = route.overview_path;
+                                                const intersections = checkRouteIntersections(routePath);
+                                                const routeDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                                
+                                                // Prefer route with fewer intersections, or shorter route if intersections are similar
+                                                if (intersections.length < bestIntersections.length || 
+                                                    (intersections.length === bestIntersections.length && routeDistance < bestDistance)) {
+                                                    bestRoute = route;
+                                                    bestRoutePath = routePath;
+                                                    bestIntersections = intersections;
+                                                    bestDistance = routeDistance;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Create a new result with only the single best route
+                                        const singleRouteResult = {
+                                            routes: [bestRoute],
+                                            request: avoidResult.request,
+                                            status: avoidStatus
+                                        };
+                                        
+                                        // Check if best route still has intersections - retry if it does
+                                        if (bestIntersections.length > 0) {
+                                            // Try again with even more waypoints
+                                            console.log('Route still intersects construction zones, adding more avoidance waypoints...');
+                                            const additionalWaypoints = buildAvoidanceWaypoints(startLoc, endLoc, bestRoutePath, bestIntersections);
+                                            const allWaypoints = [...waypoints, ...additionalWaypoints];
+                                            
+                                            if (allWaypoints.length > 0 && allWaypoints.length <= 23) { // Google Maps limit is 23 waypoints
+                                                directionsService.route({
+                                                    origin: startLoc,
+                                                    destination: endLoc,
+                                                    waypoints: allWaypoints,
+                                                    optimizeWaypoints: false, // Don't optimize, we want specific order
+                                                    travelMode: google.maps.TravelMode.DRIVING,
+                                                    avoidHighways: false,
+                                                    avoidTolls: false,
+                                                    provideRouteAlternatives: false // Only get one route
+                                                }, (retryResult, retryStatus) => {
+                                                    if (retryStatus === 'OK') {
+                                                        // Find shortest route from alternatives
+                                                        let shortestRoute = retryResult.routes[0];
+                                                        let shortestDistance = retryResult.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                                        let shortestIntersections = checkRouteIntersections(shortestRoute.overview_path);
+                                                        
+                                                        for (const route of retryResult.routes) {
+                                                            const routeDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                                            const routeIntersections = checkRouteIntersections(route.overview_path);
+                                                            
+                                                            // Prefer shorter route with same or fewer intersections
+                                                            if (routeIntersections.length < shortestIntersections.length || 
+                                                                (routeIntersections.length === shortestIntersections.length && routeDistance < shortestDistance)) {
+                                                                shortestRoute = route;
+                                                                shortestDistance = routeDistance;
+                                                                shortestIntersections = routeIntersections;
+                                                            }
+                                                        }
+                                                        
+                                                        // Create result with only the single best route
+                                                        const singleRetryResult = {
+                                                            routes: [shortestRoute],
+                                                            request: retryResult.request,
+                                                            status: retryStatus
+                                                        };
+                                                        directionsRenderer.setDirections(singleRetryResult);
+                                                        updateRouteSummary(singleRetryResult);
+                                                        storeRouteData(singleRetryResult, allWaypoints);
+                                                        
+                                                        const retryPath = shortestRoute.overview_path;
+                                                        const finalIntersections = checkRouteIntersections(retryPath);
+                                                        
+                                                        if (finalIntersections.length > 0) {
+                                                            showRouteWarning(finalIntersections, true);
+                                                            highlightIntersections(retryPath, finalIntersections);
+                                                        } else {
+                                                            hideRouteWarning();
+                                                            showSuccessMessage(intersectingZones.length);
+                                                        }
+                                                    } else {
+                                                        // Show the best we could do
+                                                        const fallbackResult = {
+                                                            routes: [bestRoute],
+                                                            request: avoidResult.request,
+                                                            status: avoidStatus
+                                                        };
+                                                        directionsRenderer.setDirections(fallbackResult);
+                                                        updateRouteSummary(fallbackResult);
+                                                        storeRouteData(fallbackResult, waypoints);
+                                                        showRouteWarning(bestIntersections, true);
+                                                        highlightIntersections(bestRoutePath, bestIntersections);
+                                                    }
+                                                });
+                                            } else {
+                                                // Too many waypoints or route calculation failed, show what we have
+                                                directionsRenderer.setDirections(singleRouteResult);
+                                                updateRouteSummary(singleRouteResult);
+                                                storeRouteData(singleRouteResult, waypoints);
+                                                showRouteWarning(bestIntersections, true);
+                                                highlightIntersections(bestRoutePath, bestIntersections);
+                                            }
+                                        } else {
+                                            // Successfully avoided all construction - show only the single best route
+                                            directionsRenderer.setDirections(singleRouteResult);
+                                            updateRouteSummary(singleRouteResult);
+                                            storeRouteData(singleRouteResult, waypoints);
+                                            hideRouteWarning();
+                                            showSuccessMessage(intersectingZones.length);
+                                        }
+                                    } else {
+                                        // Fallback to direct route if avoidance fails
+                                        directionsRenderer.setDirections(directResult);
+                                        updateRouteSummary(directResult);
+                                        storeRouteData(directResult);
+                                        showRouteWarning(intersectingZones, false);
+                                        highlightIntersections(directPath, intersectingZones);
+                                    }
+                                });
+                            } else {
+                                // No intersections, just show the direct route
+                                directionsRenderer.setDirections(directResult);
+                                updateRouteSummary(directResult);
+                                storeRouteData(directResult);
+                                hideRouteWarning();
+                            }
+                        } else {
+                            alert('Could not calculate route: ' + directStatus);
+                        }
+                    });
+                    } else {
+                        // Calculate direct route without avoidance - get alternatives for shortest path
+                        directionsService.route({
+                            origin: startLoc,
+                            destination: endLoc,
+                            travelMode: google.maps.TravelMode.DRIVING,
+                            avoidHighways: false,
+                            avoidTolls: false,
+                            provideRouteAlternatives: true // Get shortest route option
+                        }, (result, status) => {
+                            if (status === 'OK') {
+                                // Find shortest route from alternatives
+                                let shortestRoute = result.routes[0];
+                                let shortestDistance = result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                
+                                for (const route of result.routes) {
+                                    const routeDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                    if (routeDistance < shortestDistance) {
+                                        shortestRoute = route;
+                                        shortestDistance = routeDistance;
+                                    }
+                                }
+                                
+                                // Use the original result but replace routes with shortest
+                                result.routes = [shortestRoute];
+                                directionsRenderer.setDirections(result);
+                                updateRouteSummary(result);
+                                storeRouteData(result);
+                                
+                                // Check if route intersects with construction
+                                const routePath = shortestRoute.overview_path;
+                                const intersectingZones = checkRouteIntersections(routePath);
+                                
+                                if (intersectingZones.length > 0) {
+                                    showRouteWarning(intersectingZones, false);
+                                    highlightIntersections(routePath, intersectingZones);
+                                } else {
+                                    hideRouteWarning();
+                                }
+                            } else {
+                                alert('Could not calculate route: ' + status);
+                            }
+                        });
+                }
+            } catch (error) {
+                console.error('Error calculating route:', error);
+                hideRouteWarning();
+                alert('Error calculating route. Please try again.');
+            } finally {
+                // Re-enable buttons
+                const buttons = document.querySelectorAll('button[onclick*="calculateRoute"]');
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        function geocodeAddressPromise(address) {
+            return new Promise((resolve) => {
+                // Check if it's coordinates
+                const coordMatch = address.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+                if (coordMatch) {
+                    const lat = parseFloat(coordMatch[1]);
+                    const lng = parseFloat(coordMatch[2]);
+                    resolve(new google.maps.LatLng(lat, lng));
+                    return;
+                }
+                
+                // Try Places API first for better accuracy with autocomplete results
+                const placesService = new google.maps.places.PlacesService(map);
+                const autocompleteService = new google.maps.places.AutocompleteService();
+                
+                autocompleteService.getPlacePredictions({
+                    input: address,
+                    location: new google.maps.LatLng(27.8006, -97.3964),
+                    radius: 50000
+                }, (predictions, status) => {
+                    if (status === 'OK' && predictions && predictions.length > 0) {
+                        placesService.getDetails({
+                            placeId: predictions[0].place_id,
+                            fields: ['geometry']
+                        }, (place, placeStatus) => {
+                            if (placeStatus === 'OK' && place.geometry) {
+                                resolve(place.geometry.location);
+                            } else {
+                                // Fallback to geocoder
+                                fallbackGeocode(address, resolve);
+                            }
+                        });
+                    } else {
+                        // Fallback to geocoder
+                        fallbackGeocode(address, resolve);
+                    }
+                });
+            });
+        }
+        
+        function fallbackGeocode(address, resolve) {
+            const fullAddress = address.toLowerCase().includes('corpus christi') || 
+                              address.toLowerCase().includes('tx') ||
+                              address.toLowerCase().includes(',')
+                    ? address 
+                    : `${address}, Corpus Christi, TX`;
+            
+            geocoder.geocode({ address: fullAddress }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    resolve(results[0].geometry.location);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+        
+        function buildAvoidanceWaypoints(startLoc, endLoc, routePath, intersectingZones) {
+            const waypoints = [];
+            const tolerance = 100; // meters to find intersection point
+            
+            // For each intersecting zone, create waypoints well before and after to route around it
+            intersectingZones.forEach((intersection) => {
+                const zone = intersection.zone;
+                const intersectionPoint = intersection.point;
+                
+                // Determine avoidance distance - optimized for shorter routes
+                // Use smaller buffers to minimize detour distance
+                let avoidRadius = 250; // Reduced for shorter detours
+                let safeDistance = 200; // Reduced - only need minimal buffer
+                
+                if (zone.type === 'circle') {
+                    avoidRadius = zone.radius + 150; // Smaller buffer for efficiency
+                    safeDistance = Math.max(150, zone.radius + 100);
+                } else if (zone.type === 'segment' && zone.path) {
+                    // For segments, calculate the extent
+                    const segmentLength = zone.path.length > 1 ? 
+                        google.maps.geometry.spherical.computeLength(zone.path) : 300;
+                    avoidRadius = Math.max(200, segmentLength / 2 + 100);
+                    safeDistance = Math.max(150, segmentLength / 2 + 75);
+                }
+                
+                // Find the point on route well before the intersection
+                let beforeIndex = -1;
+                let beforeDist = Infinity;
+                for (let i = 0; i < routePath.length; i++) {
+                    const distToIntersection = google.maps.geometry.spherical.computeDistanceBetween(
+                        routePath[i], intersectionPoint
+                    );
+                    if (distToIntersection < beforeDist && distToIntersection > safeDistance) {
+                        beforeDist = distToIntersection;
+                        beforeIndex = i;
+                    }
+                    if (distToIntersection < tolerance) {
+                        // Found intersection, now work backwards
+                        beforeIndex = Math.max(0, i - Math.ceil(safeDistance / 30)); // Adjusted for optimization
+                        break;
+                    }
+                }
+                
+                // Find point well after intersection
+                let afterIndex = -1;
+                let afterDist = Infinity;
+                for (let i = routePath.length - 1; i >= 0; i--) {
+                    const distToIntersection = google.maps.geometry.spherical.computeDistanceBetween(
+                        routePath[i], intersectionPoint
+                    );
+                    if (distToIntersection < afterDist && distToIntersection > safeDistance) {
+                        afterDist = distToIntersection;
+                        afterIndex = i;
+                    }
+                    if (distToIntersection < tolerance) {
+                        // Found intersection, now work forwards
+                        afterIndex = Math.min(routePath.length - 1, i + Math.ceil(safeDistance / 30)); // Adjusted for optimization
+                        break;
+                    }
+                }
+                
+                if (beforeIndex >= 0 && afterIndex > beforeIndex && beforeIndex < routePath.length && afterIndex < routePath.length) {
+                    const beforePoint = routePath[beforeIndex];
+                    const afterPoint = routePath[afterIndex];
+                    
+                    // Calculate route bearing
+                    const routeBearing = google.maps.geometry.spherical.computeHeading(beforePoint, afterPoint);
+                    
+                    // Create waypoint well to the side - perpendicular to route
+                    // Use intersection point as reference for offset calculation
+                    const midBeforeAfter = new google.maps.LatLng(
+                        (beforePoint.lat() + afterPoint.lat()) / 2,
+                        (beforePoint.lng() + afterPoint.lng()) / 2
+                    );
+                    
+                    // Calculate offset points on both sides with larger distance
+                    const perpendicularBearing1 = routeBearing + 90;
+                    const perpendicularBearing2 = routeBearing - 90;
+                    
+                    const leftOffset = google.maps.geometry.spherical.computeOffset(
+                        midBeforeAfter, avoidRadius, perpendicularBearing1
+                    );
+                    const rightOffset = google.maps.geometry.spherical.computeOffset(
+                        midBeforeAfter, avoidRadius, perpendicularBearing2
+                    );
+                    
+                    // Choose the offset that's further from construction zone center/segment
+                    let waypointLoc;
+                    if (zone.type === 'circle') {
+                        const leftDist = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, zone.center);
+                        const rightDist = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, zone.center);
+                        // Choose the one further from zone center AND closer to destination
+                        const leftToDest = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, endLoc);
+                        const rightToDest = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, endLoc);
+                        
+                        if (Math.abs(leftDist - rightDist) < 50) {
+                            // If similar distance from zone, choose closer to destination
+                            waypointLoc = leftToDest < rightToDest ? leftOffset : rightOffset;
+                        } else {
+                            // Choose further from zone center
+                            waypointLoc = leftDist > rightDist ? leftOffset : rightOffset;
+                        }
+                    } else if (zone.type === 'segment' && zone.path) {
+                        // For segments, find closest point on segment and avoid that
+                        let minDist = Infinity;
+                        let closestPoint = zone.path[0];
+                        for (const segPoint of zone.path) {
+                            const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                                midBeforeAfter, segPoint
+                            );
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closestPoint = segPoint;
+                            }
+                        }
+                        
+                        const leftDist = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, closestPoint);
+                        const rightDist = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, closestPoint);
+                        const leftToDest = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, endLoc);
+                        const rightToDest = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, endLoc);
+                        
+                        if (Math.abs(leftDist - rightDist) < 50) {
+                            waypointLoc = leftToDest < rightToDest ? leftOffset : rightOffset;
+                        } else {
+                            waypointLoc = leftDist > rightDist ? leftOffset : rightOffset;
+                        }
+                    } else {
+                        // Default: choose side closer to destination
+                        const leftToDest = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, endLoc);
+                        const rightToDest = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, endLoc);
+                        waypointLoc = leftToDest < rightToDest ? leftOffset : rightOffset;
+                    }
+                    
+                    // Verify waypoint is far enough from zone before adding
+                    let isSafe = true;
+                    if (zone.type === 'circle') {
+                        const waypointDist = google.maps.geometry.spherical.computeDistanceBetween(waypointLoc, zone.center);
+                        if (waypointDist < (zone.radius + 100)) {
+                            isSafe = false;
+                            // Move it further but not too much
+                            const bearingToZone = google.maps.geometry.spherical.computeHeading(waypointLoc, zone.center);
+                            waypointLoc = google.maps.geometry.spherical.computeOffset(
+                                zone.center, zone.radius + 150, bearingToZone + 180
+                            );
+                        }
+                    }
+                    
+                    if (isSafe) {
+                        waypoints.push({
+                            location: waypointLoc,
+                            stopover: false
+                        });
+                    }
+                }
+            });
+            
+            console.log(`Added ${waypoints.length} avoidance waypoints`);
+            return waypoints;
+        }
+        
+        function checkRouteIntersections(routePath) {
+            const intersections = [];
+            const tolerance = 50; // meters
+            
+            constructionZones.forEach((zone) => {
+                if (zone.type === 'circle') {
+                    routePath.forEach((point, index) => {
+                        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                            point, zone.center
+                        );
+                        if (distance < (zone.radius + tolerance)) {
+                            if (!intersections.find(i => i.zone === zone)) {
+                                intersections.push({
+                                    zone: zone,
+                                    point: point,
+                                    distance: distance
+                                });
+                            }
+                        }
+                    });
+                } else if (zone.type === 'segment' && zone.path) {
+                    // Check if route path is close to construction segment
+                    routePath.forEach((routePoint) => {
+                        zone.path.forEach((zonePoint) => {
+                            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                                routePoint, zonePoint
+                            );
+                            if (distance < tolerance) {
+                                if (!intersections.find(i => i.zone === zone)) {
+                                    intersections.push({
+                                        zone: zone,
+                                        point: routePoint,
+                                        distance: distance
+                                    });
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+            
+            return intersections;
+        }
+        
+        function highlightIntersections(routePath, intersections) {
+            intersections.forEach(intersection => {
+                const marker = new google.maps.Marker({
+                    position: intersection.point,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: '#DC2626',
+                        fillOpacity: 1,
+                        strokeColor: '#FFFFFF',
+                        strokeWeight: 3
+                    },
+                    title: 'Route intersects construction zone',
+                    zIndex: 1000
+                });
+                
+                markers.push(marker);
+            });
+        }
+        
+        function showSuccessMessage(avoidedCount) {
+            const routeInfo = document.getElementById('routeInfo');
+            const routeWarning = document.getElementById('routeWarning');
+            routeWarning.innerHTML = `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> <span>Route calculated successfully! Avoided ${avoidedCount} construction zone(s).</span>`;
+            routeWarning.className = 'text-base text-green-800 flex items-center gap-3';
+            routeInfo.className = 'mt-4 p-4 bg-green-50 border-2 border-green-400 rounded-xl';
+            routeInfo.classList.remove('hidden');
+            
+            // Highlight the button
+            const avoidBtn = document.getElementById('avoidConstructionBtn');
+            if (avoidBtn) {
+                avoidBtn.style.boxShadow = '0 0 0 4px rgba(34, 197, 94, 0.5)';
+                setTimeout(() => {
+                    avoidBtn.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                }, 3000);
+            }
+        }
+        
+        function showRouteWarning(intersections, avoidConstruction) {
+            const routeInfo = document.getElementById('routeInfo');
+            const routeWarning = document.getElementById('routeWarning');
+            
+            if (avoidConstruction) {
+                routeWarning.innerHTML = `<svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> <span>Route may pass near ${intersections.length} construction zone(s). Detour waypoints have been added.</span>`;
+                routeWarning.className = 'text-base text-yellow-800 flex items-center gap-3';
+                routeInfo.className = 'mt-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-xl';
+            } else {
+                routeWarning.innerHTML = `<svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg> <span><strong>Warning:</strong> Route passes through or near ${intersections.length} construction zone(s). Consider using "Avoid Construction" for a detour.</span>`;
+                routeWarning.className = 'text-base text-red-800 flex items-center gap-3';
+                routeInfo.className = 'mt-4 p-4 bg-red-50 border-2 border-red-400 rounded-xl';
+                
+                // Pulse the "Avoid Construction" button to draw attention
+                const avoidBtn = document.getElementById('avoidConstructionBtn');
+                if (avoidBtn) {
+                    avoidBtn.classList.add('animate-pulse', 'ring-4', 'ring-yellow-400');
+                    setTimeout(() => {
+                        avoidBtn.classList.remove('animate-pulse');
+                    }, 3000);
+                }
+            }
+            
+            routeInfo.classList.remove('hidden');
+        }
+        
+        function hideRouteWarning() {
+            const routeInfo = document.getElementById('routeInfo');
+            routeInfo.classList.add('hidden');
+        }
+        
+        function updateRouteSummary(directionsResult) {
+            const routeSummary = document.getElementById('routeSummary');
+            const routeDistance = document.getElementById('routeDistance');
+            const routeDuration = document.getElementById('routeDuration');
+            
+            if (directionsResult && directionsResult.routes && directionsResult.routes.length > 0) {
+                const route = directionsResult.routes[0];
+                if (route.legs && route.legs.length > 0) {
+                    let totalDistance = 0;
+                    let totalDuration = 0;
+                    
+                    route.legs.forEach(leg => {
+                        totalDistance += leg.distance.value;
+                        totalDuration += leg.duration.value;
+                    });
+                    
+                    // Convert to miles and minutes
+                    const distanceMiles = (totalDistance / 1609.34).toFixed(1);
+                    const durationMinutes = Math.round(totalDuration / 60);
+                    
+                    routeDistance.textContent = `${distanceMiles} mi`;
+                    routeDuration.textContent = `${durationMinutes} min`;
+                    routeSummary.classList.remove('hidden');
+                    
+                    // Store route data for external maps (waypoints passed separately if available)
+                    storeRouteData(directionsResult);
+                }
+            }
+        }
+        
+        function storeRouteData(directionsResult, waypoints = null) {
+            if (directionsResult && directionsResult.routes && directionsResult.routes.length > 0) {
+                const route = directionsResult.routes[0];
+                const startInput = document.getElementById('startInput').value;
+                const endInput = document.getElementById('endInput').value;
+                
+                // Extract waypoints from provided waypoints or try to get from route
+                let storedWaypoints = [];
+                
+                // First try to use passed waypoints
+                if (waypoints && waypoints.length > 0) {
+                    waypoints.forEach(wp => {
+                        if (wp.location) {
+                            const loc = wp.location;
+                            if (typeof loc.lat === 'function') {
+                                storedWaypoints.push({
+                                    lat: loc.lat(),
+                                    lng: loc.lng()
+                                });
+                            } else {
+                                storedWaypoints.push({
+                                    lat: loc.lat,
+                                    lng: loc.lng
+                                });
+                            }
+                        }
+                    });
+                } else if (directionsResult.request && directionsResult.request.waypoints) {
+                    // Fallback: try to extract from request
+                    directionsResult.request.waypoints.forEach(wp => {
+                        if (wp.location) {
+                            const loc = wp.location;
+                            if (typeof loc.lat === 'function') {
+                                storedWaypoints.push({
+                                    lat: loc.lat(),
+                                    lng: loc.lng()
+                                });
+                            } else if (typeof loc === 'object' && 'lat' in loc) {
+                                storedWaypoints.push({
+                                    lat: loc.lat,
+                                    lng: loc.lng
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Get start and end coordinates from route legs
+                let startLat, startLng, endLat, endLng;
+                if (route.legs && route.legs.length > 0) {
+                    const firstLeg = route.legs[0];
+                    const lastLeg = route.legs[route.legs.length - 1];
+                    
+                    if (firstLeg.start_location) {
+                        startLat = firstLeg.start_location.lat();
+                        startLng = firstLeg.start_location.lng();
+                    }
+                    if (lastLeg.end_location) {
+                        endLat = lastLeg.end_location.lat();
+                        endLng = lastLeg.end_location.lng();
+                    }
+                }
+                
+                currentRouteData = {
+                    start: { address: startInput, lat: startLat, lng: startLng },
+                    end: { address: endInput, lat: endLat, lng: endLng },
+                    waypoints: storedWaypoints,
+                    directionsResult: directionsResult
+                };
+            }
+        }
+        
+        function openInGoogleMaps() {
+            if (!currentRouteData) {
+                alert('No route available. Please calculate a route first.');
+                return;
+            }
+            
+            const start = currentRouteData.start;
+            const end = currentRouteData.end;
+            const waypoints = currentRouteData.waypoints || [];
+            
+            // Build Google Maps URL
+            let url = 'https://www.google.com/maps/dir/?api=1';
+            
+            // Add origin
+            if (start.lat && start.lng) {
+                url += `&origin=${start.lat},${start.lng}`;
+            } else if (start.address) {
+                url += `&origin=${encodeURIComponent(start.address)}`;
+            }
+            
+            // Add destination
+            if (end.lat && end.lng) {
+                url += `&destination=${end.lat},${end.lng}`;
+            } else if (end.address) {
+                url += `&destination=${encodeURIComponent(end.address)}`;
+            }
+            
+            // Add waypoints if any
+            if (waypoints.length > 0) {
+                const waypointStr = waypoints.map(wp => `${wp.lat},${wp.lng}`).join('|');
+                url += `&waypoints=${encodeURIComponent(waypointStr)}`;
+            }
+            
+            // Open in new tab
+            window.open(url, '_blank');
+        }
+        
+        function clearRoute() {
+            if (directionsRenderer) {
+                // Clear any existing routes completely
+                directionsRenderer.setDirections({routes: []});
+                // Force re-render to ensure old routes are removed
+                directionsRenderer.setMap(null);
+                directionsRenderer.setMap(map);
+            }
+            hideRouteWarning();
+            
+            // Hide route summary
+            const routeSummary = document.getElementById('routeSummary');
+            if (routeSummary) {
+                routeSummary.classList.add('hidden');
+            }
+            
+            // Clear stored route data
+            currentRouteData = null;
+            
+            // Remove intersection warning markers
+            markers = markers.filter(m => {
+                if (m.title === 'Route intersects construction zone') {
+                    m.setMap(null);
+                    return false;
+                }
+                return true;
+            });
+            
+            // Reset button states
+            const buttons = document.querySelectorAll('#avoidConstructionBtn, #directRouteBtn');
+            buttons.forEach(btn => {
+                btn.classList.remove('ring-4');
+            });
+        }
+        
+        // Dark Mode Toggle Function
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('darkMode', 'true');
+            }
+            
+            // Update Google Maps styles if needed
+            if (map) {
+                updateMapTheme();
+            }
+        }
+        
+        // Initialize dark mode from localStorage
+        function initDarkMode() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'true') {
+                document.documentElement.classList.add('dark');
+            } else if (darkMode === null) {
+                // Check system preference if no stored preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('darkMode', 'true');
+                }
+            }
+        }
+        
+        // Update map theme based on dark mode
+        function updateMapTheme() {
+            if (!map) return;
+            
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            if (isDark) {
+                // Dark map styles
+                map.setOptions({
+                    styles: [
+                        {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
+                        {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
+                        {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+                        {
+                            featureType: 'administrative.locality',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#d59563'}]
+                        },
+                        {
+                            featureType: 'poi',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#d59563'}]
+                        },
+                        {
+                            featureType: 'poi.park',
+                            elementType: 'geometry',
+                            stylers: [{color: '#263c3f'}]
+                        },
+                        {
+                            featureType: 'poi.park',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#6b9a76'}]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'geometry',
+                            stylers: [{color: '#38414e'}]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'geometry.stroke',
+                            stylers: [{color: '#212a37'}]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#9ca5b3'}]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'geometry',
+                            stylers: [{color: '#746855'}]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'geometry.stroke',
+                            stylers: [{color: '#1f2835'}]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#f3d19c'}]
+                        },
+                        {
+                            featureType: 'transit',
+                            elementType: 'geometry',
+                            stylers: [{color: '#2f3948'}]
+                        },
+                        {
+                            featureType: 'transit.station',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#d59563'}]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'geometry',
+                            stylers: [{color: '#17263c'}]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'labels.text.fill',
+                            stylers: [{color: '#515c6d'}]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'labels.text.stroke',
+                            stylers: [{color: '#17263c'}]
+                        }
+                    ]
+                });
+            } else {
+                // Light map styles (default)
+                map.setOptions({styles: []});
+            }
+        }
+        
+        // Load geometry library (needed for distance calculations)
+        // Initialize map when page loads
+        window.onload = function() {
+            // Initialize dark mode first
+            initDarkMode();
+            
+            // Check if geometry library is loaded
+            if (typeof google.maps.geometry !== 'undefined') {
+                initMap();
+                loadConstructionData();
+                // Update map theme after initialization
+                setTimeout(() => {
+                    updateMapTheme();
+                }, 100);
+            } else {
+                // Retry after a short delay
+                setTimeout(() => {
+                    if (typeof google.maps.geometry !== 'undefined') {
+                        initMap();
+                        loadConstructionData();
+                        // Update map theme after initialization
+                        setTimeout(() => {
+                            updateMapTheme();
+                        }, 100);
+                    } else {
+                        console.error('Google Maps Geometry library not loaded');
+                    }
+                }, 500);
+            }
+        };
+    </script>
 
 </body>
 </html>
