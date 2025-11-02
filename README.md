@@ -28,6 +28,7 @@ One of the most significant challenges encountered during development was managi
 Looking ahead 🔭, our team plans to **further refine and expand** the project to achieve its full potential. Due to the **limited timeframe** ⏳ of the hackathon, we simplified several planned features to ensure functionality and meet submission requirements.  
 
 Despite these limitations, we are committed to **continuing development** and realizing the complete vision for this application. 💪✨  
+
 ---
 
 ### 🎥 Project Demo Video
