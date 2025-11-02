@@ -8,6 +8,7 @@ import requests
 from openai import OpenAI
 import json
 import sys
+import os
 from bs4 import BeautifulSoup
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
@@ -212,17 +213,7 @@ def generate_weekly_urls(start_date: datetime = None, weeks_ahead: int = 4) -> L
 def main():
     """Main function to run the construction extractor."""
     # OpenAI API key
-    # Replace YOUR_OPENAI_API_KEY with your actual API key
-    # You can also set this as an environment variable: export OPENAI_API_KEY="your-key-here"
-    OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
-    
-    # Check if API key is set
-    if OPENAI_API_KEY == "YOUR_OPENAI_API_KEY":
-        import os
-        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
-        if OPENAI_API_KEY == "YOUR_OPENAI_API_KEY":
-            print("Error: OpenAI API key not set. Please set YOUR_OPENAI_API_KEY or export OPENAI_API_KEY environment variable.", file=sys.stderr)
-            sys.exit(1)
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "YOUR_OPENAI_API_KEY"
     
     extractor = ConstructionExtractor(OPENAI_API_KEY)
     all_construction_data = []

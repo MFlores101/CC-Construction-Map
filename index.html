@@ -13,7 +13,6 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- Google Maps JavaScript API -->
-    <!-- Replace YOUR_GOOGLE_MAPS_API_KEY with your actual API key -->
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry"></script>
     <style>
         /* Custom styles for the map container */
@@ -831,205 +830,126 @@
                 const endLoc = endResult;
                 
                 if (avoidConstruction && constructionZones.length > 0) {
-                    // First, calculate direct route to see what it intersects
+                    // NEW APPROACH: Request multiple route alternatives and pick the one that best avoids construction
+                    // This lets Google Maps calculate the routes naturally and we just pick the best one
                     directionsService.route({
                         origin: startLoc,
                         destination: endLoc,
                         travelMode: google.maps.TravelMode.DRIVING,
                         avoidHighways: false,
-                        avoidTolls: false
-                    }, (directResult, directStatus) => {
-                        if (directStatus === 'OK') {
-                            const directRoute = directResult.routes[0];
-                            const directPath = directRoute.overview_path;
-                            const intersectingZones = checkRouteIntersections(directPath);
+                        avoidTolls: false,
+                        provideRouteAlternatives: true // Get multiple route options
+                    }, (result, status) => {
+                        if (status === 'OK' && result.routes && result.routes.length > 0) {
+                            // Evaluate each route to find the one that best avoids construction
+                            let bestRoute = null;
+                            let bestScore = -Infinity;
+                            let bestIntersections = [];
                             
-                            if (intersectingZones.length > 0) {
-                                // Build waypoints to avoid intersections
-                                const waypoints = buildAvoidanceWaypoints(startLoc, endLoc, directPath, intersectingZones);
+                            result.routes.forEach((route, idx) => {
+                                const routePath = route.overview_path;
+                                const intersections = checkRouteIntersections(routePath);
+                                const intersectionCount = intersections.length;
                                 
-                                // Calculate route with avoidance waypoints
-                                // Use optimizeWaypoints to find shortest path through waypoints
-                                directionsService.route({
-                                    origin: startLoc,
-                                    destination: endLoc,
-                                    waypoints: waypoints.length > 0 ? waypoints : undefined,
-                                    optimizeWaypoints: waypoints.length > 0 && waypoints.length <= 8, // Optimize if reasonable number
-                                    travelMode: google.maps.TravelMode.DRIVING,
-                                    avoidHighways: false,
-                                    avoidTolls: false,
-                                    provideRouteAlternatives: true // Get multiple route options to find best
-                                }, (avoidResult, avoidStatus) => {
-                                    if (avoidStatus === 'OK') {
-                                        // Find the shortest route that avoids construction
-                                        let bestRoute = avoidResult.routes[0];
-                                        let bestRoutePath = bestRoute.overview_path;
-                                        let bestIntersections = checkRouteIntersections(bestRoutePath);
-                                        let bestDistance = bestRoute.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-                                        
-                                        // If alternatives exist, find the shortest one that avoids construction
-                                        if (avoidResult.routes.length > 1) {
-                                            for (const route of avoidResult.routes) {
-                                                const routePath = route.overview_path;
-                                                const intersections = checkRouteIntersections(routePath);
-                                                const routeDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-                                                
-                                                // Prefer route with fewer intersections, or shorter route if intersections are similar
-                                                if (intersections.length < bestIntersections.length || 
-                                                    (intersections.length === bestIntersections.length && routeDistance < bestDistance)) {
-                                                    bestRoute = route;
-                                                    bestRoutePath = routePath;
-                                                    bestIntersections = intersections;
-                                                    bestDistance = routeDistance;
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Create a new result with only the single best route
-                                        const singleRouteResult = {
-                                            routes: [bestRoute],
-                                            request: avoidResult.request,
-                                            status: avoidStatus
-                                        };
-                                        
-                                        // Check if best route still has intersections - retry if it does
-                                        if (bestIntersections.length > 0) {
-                                            // Try again with even more waypoints
-                                            console.log('Route still intersects construction zones, adding more avoidance waypoints...');
-                                            const additionalWaypoints = buildAvoidanceWaypoints(startLoc, endLoc, bestRoutePath, bestIntersections);
-                                            const allWaypoints = [...waypoints, ...additionalWaypoints];
-                                            
-                                            if (allWaypoints.length > 0 && allWaypoints.length <= 23) { // Google Maps limit is 23 waypoints
-                                                directionsService.route({
-                                                    origin: startLoc,
-                                                    destination: endLoc,
-                                                    waypoints: allWaypoints,
-                                                    optimizeWaypoints: false, // Don't optimize, we want specific order
-                                                    travelMode: google.maps.TravelMode.DRIVING,
-                                                    avoidHighways: false,
-                                                    avoidTolls: false,
-                                                    provideRouteAlternatives: false // Only get one route
-                                                }, (retryResult, retryStatus) => {
-                                                    if (retryStatus === 'OK') {
-                                                        // Find shortest route from alternatives
-                                                        let shortestRoute = retryResult.routes[0];
-                                                        let shortestDistance = retryResult.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-                                                        let shortestIntersections = checkRouteIntersections(shortestRoute.overview_path);
-                                                        
-                                                        for (const route of retryResult.routes) {
-                                                            const routeDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-                                                            const routeIntersections = checkRouteIntersections(route.overview_path);
-                                                            
-                                                            // Prefer shorter route with same or fewer intersections
-                                                            if (routeIntersections.length < shortestIntersections.length || 
-                                                                (routeIntersections.length === shortestIntersections.length && routeDistance < shortestDistance)) {
-                                                                shortestRoute = route;
-                                                                shortestDistance = routeDistance;
-                                                                shortestIntersections = routeIntersections;
-                                                            }
-                                                        }
-                                                        
-                                                        // Create result with only the single best route
-                                                        const singleRetryResult = {
-                                                            routes: [shortestRoute],
-                                                            request: retryResult.request,
-                                                            status: retryStatus
-                                                        };
-                                                        directionsRenderer.setDirections(singleRetryResult);
-                                                        updateRouteSummary(singleRetryResult);
-                                                        storeRouteData(singleRetryResult, allWaypoints);
-                                                        
-                                                        const retryPath = shortestRoute.overview_path;
-                                                        const finalIntersections = checkRouteIntersections(retryPath);
-                                                        
-                                                        if (finalIntersections.length > 0) {
-                                                            showRouteWarning(finalIntersections, true);
-                                                            highlightIntersections(retryPath, finalIntersections);
-                                                        } else {
-                                                            hideRouteWarning();
-                                                            showSuccessMessage(intersectingZones.length);
-                                                        }
-                                                    } else {
-                                                        // Show the best we could do
-                                                        const fallbackResult = {
-                                                            routes: [bestRoute],
-                                                            request: avoidResult.request,
-                                                            status: avoidStatus
-                                                        };
-                                                        directionsRenderer.setDirections(fallbackResult);
-                                                        updateRouteSummary(fallbackResult);
-                                                        storeRouteData(fallbackResult, waypoints);
-                                                        showRouteWarning(bestIntersections, true);
-                                                        highlightIntersections(bestRoutePath, bestIntersections);
-                                                    }
-                                                });
-                                            } else {
-                                                // Too many waypoints or route calculation failed, show what we have
-                                                directionsRenderer.setDirections(singleRouteResult);
-                                                updateRouteSummary(singleRouteResult);
-                                                storeRouteData(singleRouteResult, waypoints);
-                                                showRouteWarning(bestIntersections, true);
-                                                highlightIntersections(bestRoutePath, bestIntersections);
-                                            }
-                                        } else {
-                                            // Successfully avoided all construction - show only the single best route
-                                            directionsRenderer.setDirections(singleRouteResult);
-                                            updateRouteSummary(singleRouteResult);
-                                            storeRouteData(singleRouteResult, waypoints);
-                                            hideRouteWarning();
-                                            showSuccessMessage(intersectingZones.length);
-                                        }
-                                    } else {
-                                        // Fallback to direct route if avoidance fails
-                                        directionsRenderer.setDirections(directResult);
-                                        updateRouteSummary(directResult);
-                                        storeRouteData(directResult);
-                                        showRouteWarning(intersectingZones, false);
-                                        highlightIntersections(directPath, intersectingZones);
-                                    }
+                                // Calculate route distance and duration
+                                let totalDistance = 0;
+                                let totalDuration = 0;
+                                
+                                route.legs.forEach(leg => {
+                                    totalDistance += leg.distance.value; // meters
+                                    totalDuration += leg.duration.value; // seconds
                                 });
+                                
+                                // Score: prioritize routes with fewer intersections, then shorter distance
+                                // Higher score = better route
+                                const score = (1000 - intersectionCount * 200) + (10000 - totalDistance / 10);
+                                
+                                console.log(`Route ${idx + 1}: ${intersectionCount} intersections, ${(totalDistance/1000).toFixed(1)}km, score: ${score.toFixed(0)}`);
+                                
+                                // Prefer routes with fewer intersections
+                                if (score > bestScore || (intersectionCount === 0 && bestRoute === null)) {
+                                    bestScore = score;
+                                    bestRoute = route;
+                                    bestIntersections = intersections;
+                                }
+                            });
+                            
+                            // If we found a route with no intersections, prioritize that even if slightly longer
+                            const perfectRoute = result.routes.find(route => {
+                                const intersections = checkRouteIntersections(route.overview_path);
+                                return intersections.length === 0;
+                            });
+                            
+                            if (perfectRoute) {
+                                bestRoute = perfectRoute;
+                                bestIntersections = [];
+                            }
+                            
+                            // Display the best route
+                            const bestRouteResult = {
+                                routes: [bestRoute],
+                                request: result.request,
+                                status: status
+                            };
+                            
+                            // Clear any existing routes first
+                            directionsRenderer.setDirections({routes: []});
+                            directionsRenderer.setDirections(bestRouteResult);
+                            updateRouteSummary(bestRouteResult);
+                            storeRouteData(bestRouteResult);
+                            
+                            if (bestIntersections.length > 0) {
+                                showRouteWarning(bestIntersections, true);
+                                highlightIntersections(bestRoute.overview_path, bestIntersections);
                             } else {
-                                // No intersections, just show the direct route
-                                directionsRenderer.setDirections(directResult);
-                                updateRouteSummary(directResult);
-                                storeRouteData(directResult);
                                 hideRouteWarning();
+                                // Check how many zones the direct route would have hit
+                                const directRoute = result.routes.find(r => {
+                                    // The first route is usually the fastest/direct
+                                    return result.routes.indexOf(r) === 0;
+                                });
+                                if (directRoute) {
+                                    const directIntersections = checkRouteIntersections(directRoute.overview_path);
+                                    if (directIntersections.length > 0) {
+                                        showSuccessMessage(directIntersections.length);
+                                    } else {
+                                        hideRouteWarning();
+                                    }
+                                }
                             }
                         } else {
-                            alert('Could not calculate route: ' + directStatus);
+                            alert('Could not calculate route: ' + status);
                         }
                     });
                     } else {
-                        // Calculate direct route without avoidance - get alternatives for shortest path
+                        // Calculate direct route without avoidance - get single fastest route
                         directionsService.route({
                             origin: startLoc,
                             destination: endLoc,
                             travelMode: google.maps.TravelMode.DRIVING,
                             avoidHighways: false,
                             avoidTolls: false,
-                            provideRouteAlternatives: true // Get shortest route option
+                            provideRouteAlternatives: false // Only get ONE route - the fastest
                         }, (result, status) => {
                             if (status === 'OK') {
-                                // Find shortest route from alternatives
-                                let shortestRoute = result.routes[0];
-                                let shortestDistance = result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+                                // Get the single route (already the fastest)
+                                const singleRoute = result.routes[0];
                                 
-                                for (const route of result.routes) {
-                                    const routeDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-                                    if (routeDistance < shortestDistance) {
-                                        shortestRoute = route;
-                                        shortestDistance = routeDistance;
-                                    }
-                                }
+                                // Create result with only the single route
+                                const singleRouteResult = {
+                                    routes: [singleRoute],
+                                    request: result.request,
+                                    status: status
+                                };
                                 
-                                // Use the original result but replace routes with shortest
-                                result.routes = [shortestRoute];
-                                directionsRenderer.setDirections(result);
-                                updateRouteSummary(result);
-                                storeRouteData(result);
+                                // Clear any existing routes first
+                                directionsRenderer.setDirections({routes: []});
+                                directionsRenderer.setDirections(singleRouteResult);
+                                updateRouteSummary(singleRouteResult);
+                                storeRouteData(singleRouteResult);
                                 
                                 // Check if route intersects with construction
-                                const routePath = shortestRoute.overview_path;
+                                const routePath = singleRoute.overview_path;
                                 const intersectingZones = checkRouteIntersections(routePath);
                                 
                                 if (intersectingZones.length > 0) {
@@ -1111,163 +1031,151 @@
         }
         
         function buildAvoidanceWaypoints(startLoc, endLoc, routePath, intersectingZones) {
-            const waypoints = [];
-            const tolerance = 100; // meters to find intersection point
+            if (intersectingZones.length === 0) return [];
             
-            // For each intersecting zone, create waypoints well before and after to route around it
-            intersectingZones.forEach((intersection) => {
-                const zone = intersection.zone;
-                const intersectionPoint = intersection.point;
-                
-                // Determine avoidance distance - optimized for shorter routes
-                // Use smaller buffers to minimize detour distance
-                let avoidRadius = 250; // Reduced for shorter detours
-                let safeDistance = 200; // Reduced - only need minimal buffer
-                
-                if (zone.type === 'circle') {
-                    avoidRadius = zone.radius + 150; // Smaller buffer for efficiency
-                    safeDistance = Math.max(150, zone.radius + 100);
-                } else if (zone.type === 'segment' && zone.path) {
-                    // For segments, calculate the extent
-                    const segmentLength = zone.path.length > 1 ? 
-                        google.maps.geometry.spherical.computeLength(zone.path) : 300;
-                    avoidRadius = Math.max(200, segmentLength / 2 + 100);
-                    safeDistance = Math.max(150, segmentLength / 2 + 75);
-                }
-                
-                // Find the point on route well before the intersection
-                let beforeIndex = -1;
-                let beforeDist = Infinity;
+            // STRICT: Only ONE waypoint for the most critical construction zone
+            // Find the largest/most problematic zone that blocks the route
+            
+            const intersectionsWithIndex = intersectingZones.map(intersection => {
+                let minDist = Infinity;
+                let closestIndex = 0;
                 for (let i = 0; i < routePath.length; i++) {
-                    const distToIntersection = google.maps.geometry.spherical.computeDistanceBetween(
-                        routePath[i], intersectionPoint
+                    const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                        routePath[i], intersection.point
                     );
-                    if (distToIntersection < beforeDist && distToIntersection > safeDistance) {
-                        beforeDist = distToIntersection;
-                        beforeIndex = i;
-                    }
-                    if (distToIntersection < tolerance) {
-                        // Found intersection, now work backwards
-                        beforeIndex = Math.max(0, i - Math.ceil(safeDistance / 30)); // Adjusted for optimization
-                        break;
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIndex = i;
                     }
                 }
-                
-                // Find point well after intersection
-                let afterIndex = -1;
-                let afterDist = Infinity;
-                for (let i = routePath.length - 1; i >= 0; i--) {
-                    const distToIntersection = google.maps.geometry.spherical.computeDistanceBetween(
-                        routePath[i], intersectionPoint
-                    );
-                    if (distToIntersection < afterDist && distToIntersection > safeDistance) {
-                        afterDist = distToIntersection;
-                        afterIndex = i;
-                    }
-                    if (distToIntersection < tolerance) {
-                        // Found intersection, now work forwards
-                        afterIndex = Math.min(routePath.length - 1, i + Math.ceil(safeDistance / 30)); // Adjusted for optimization
-                        break;
-                    }
+                const routeProgress = closestIndex / routePath.length;
+                return { 
+                    ...intersection, 
+                    routeIndex: closestIndex,
+                    routeProgress: routeProgress,
+                    zoneSize: intersection.zone.type === 'circle' ? intersection.zone.radius : 
+                             (intersection.zone.path ? google.maps.geometry.spherical.computeLength(intersection.zone.path) : 0)
+                };
+            });
+            
+            // Sort by zone size (largest first) - prioritize biggest obstacles
+            intersectionsWithIndex.sort((a, b) => b.zoneSize - a.zoneSize);
+            
+            // Get the single most critical zone
+            const criticalZone = intersectionsWithIndex[0];
+            if (!criticalZone) return [];
+            
+            const routeIndex = criticalZone.routeIndex;
+            const zone = criticalZone.zone;
+            
+            // Skip if too close to start or end
+            if (routeIndex < 15 || routeIndex >= routePath.length - 15) return [];
+            
+            const intersectionPoint = routePath[routeIndex];
+            
+            // Find point well BEFORE the zone to place waypoint
+            const beforeIndex = Math.max(0, routeIndex - 30);
+            const afterIndex = Math.min(routePath.length - 1, routeIndex + 30);
+            const beforePoint = routePath[beforeIndex];
+            const afterPoint = routePath[afterIndex];
+            
+            // Calculate route direction and direction to destination
+            const routeBearing = google.maps.geometry.spherical.computeHeading(beforePoint, afterPoint);
+            const bearingToDest = google.maps.geometry.spherical.computeHeading(intersectionPoint, endLoc);
+            
+            // Calculate significant avoidance distance - must clear the zone completely
+            let avoidDistance = 200; // Base minimum
+            if (zone.type === 'circle') {
+                avoidDistance = zone.radius + 150; // Well clear of circle
+            } else if (zone.type === 'segment' && zone.path) {
+                const segLength = google.maps.geometry.spherical.computeLength(zone.path);
+                avoidDistance = Math.max(segLength / 2 + 150, 250); // At least 250m
+            }
+            
+            // Try both sides of the route to find the best bypass
+            const leftBearing = (routeBearing + 90) % 360;
+            const rightBearing = (routeBearing - 90) % 360;
+            
+            const leftOffset = google.maps.geometry.spherical.computeOffset(
+                beforePoint, avoidDistance, leftBearing
+            );
+            const rightOffset = google.maps.geometry.spherical.computeOffset(
+                beforePoint, avoidDistance, rightBearing
+            );
+            
+            // Test both offsets to find the one that:
+            // 1. Is furthest from the construction zone
+            // 2. Moves toward destination
+            // 3. Is on the fastest path (closer to destination)
+            
+            let bestWaypoint = null;
+            let bestScore = -Infinity;
+            
+            [leftOffset, rightOffset].forEach((offset, idx) => {
+                // Calculate distance from zone (safety)
+                let zoneDist = Infinity;
+                if (zone.type === 'circle') {
+                    zoneDist = google.maps.geometry.spherical.computeDistanceBetween(offset, zone.center);
+                } else if (zone.type === 'segment' && zone.path) {
+                    zoneDist = Math.min(...zone.path.map(p => 
+                        google.maps.geometry.spherical.computeDistanceBetween(offset, p)
+                    ));
                 }
                 
-                if (beforeIndex >= 0 && afterIndex > beforeIndex && beforeIndex < routePath.length && afterIndex < routePath.length) {
-                    const beforePoint = routePath[beforeIndex];
-                    const afterPoint = routePath[afterIndex];
-                    
-                    // Calculate route bearing
-                    const routeBearing = google.maps.geometry.spherical.computeHeading(beforePoint, afterPoint);
-                    
-                    // Create waypoint well to the side - perpendicular to route
-                    // Use intersection point as reference for offset calculation
-                    const midBeforeAfter = new google.maps.LatLng(
-                        (beforePoint.lat() + afterPoint.lat()) / 2,
-                        (beforePoint.lng() + afterPoint.lng()) / 2
-                    );
-                    
-                    // Calculate offset points on both sides with larger distance
-                    const perpendicularBearing1 = routeBearing + 90;
-                    const perpendicularBearing2 = routeBearing - 90;
-                    
-                    const leftOffset = google.maps.geometry.spherical.computeOffset(
-                        midBeforeAfter, avoidRadius, perpendicularBearing1
-                    );
-                    const rightOffset = google.maps.geometry.spherical.computeOffset(
-                        midBeforeAfter, avoidRadius, perpendicularBearing2
-                    );
-                    
-                    // Choose the offset that's further from construction zone center/segment
-                    let waypointLoc;
-                    if (zone.type === 'circle') {
-                        const leftDist = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, zone.center);
-                        const rightDist = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, zone.center);
-                        // Choose the one further from zone center AND closer to destination
-                        const leftToDest = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, endLoc);
-                        const rightToDest = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, endLoc);
-                        
-                        if (Math.abs(leftDist - rightDist) < 50) {
-                            // If similar distance from zone, choose closer to destination
-                            waypointLoc = leftToDest < rightToDest ? leftOffset : rightOffset;
-                        } else {
-                            // Choose further from zone center
-                            waypointLoc = leftDist > rightDist ? leftOffset : rightOffset;
-                        }
-                    } else if (zone.type === 'segment' && zone.path) {
-                        // For segments, find closest point on segment and avoid that
-                        let minDist = Infinity;
-                        let closestPoint = zone.path[0];
-                        for (const segPoint of zone.path) {
-                            const dist = google.maps.geometry.spherical.computeDistanceBetween(
-                                midBeforeAfter, segPoint
-                            );
-                            if (dist < minDist) {
-                                minDist = dist;
-                                closestPoint = segPoint;
-                            }
-                        }
-                        
-                        const leftDist = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, closestPoint);
-                        const rightDist = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, closestPoint);
-                        const leftToDest = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, endLoc);
-                        const rightToDest = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, endLoc);
-                        
-                        if (Math.abs(leftDist - rightDist) < 50) {
-                            waypointLoc = leftToDest < rightToDest ? leftOffset : rightOffset;
-                        } else {
-                            waypointLoc = leftDist > rightDist ? leftOffset : rightOffset;
-                        }
-                    } else {
-                        // Default: choose side closer to destination
-                        const leftToDest = google.maps.geometry.spherical.computeDistanceBetween(leftOffset, endLoc);
-                        const rightToDest = google.maps.geometry.spherical.computeDistanceBetween(rightOffset, endLoc);
-                        waypointLoc = leftToDest < rightToDest ? leftOffset : rightOffset;
-                    }
-                    
-                    // Verify waypoint is far enough from zone before adding
-                    let isSafe = true;
-                    if (zone.type === 'circle') {
-                        const waypointDist = google.maps.geometry.spherical.computeDistanceBetween(waypointLoc, zone.center);
-                        if (waypointDist < (zone.radius + 100)) {
-                            isSafe = false;
-                            // Move it further but not too much
-                            const bearingToZone = google.maps.geometry.spherical.computeHeading(waypointLoc, zone.center);
-                            waypointLoc = google.maps.geometry.spherical.computeOffset(
-                                zone.center, zone.radius + 150, bearingToZone + 180
-                            );
-                        }
-                    }
-                    
-                    if (isSafe) {
-                        waypoints.push({
-                            location: waypointLoc,
-                            stopover: false
-                        });
-                    }
+                // Must be well clear of zone
+                if (zoneDist < 150) return;
+                
+                // Check forward progress
+                const distFromStart = google.maps.geometry.spherical.computeDistanceBetween(startLoc, offset);
+                const distFromStartToZone = google.maps.geometry.spherical.computeDistanceBetween(startLoc, intersectionPoint);
+                
+                // Must be forward-moving (at least as far as zone)
+                if (distFromStart < distFromStartToZone - 50) return;
+                
+                // Check distance to destination - prefer shorter paths
+                const distToDest = google.maps.geometry.spherical.computeDistanceBetween(offset, endLoc);
+                const distToDestFromZone = google.maps.geometry.spherical.computeDistanceBetween(intersectionPoint, endLoc);
+                
+                // Prefer waypoint that doesn't add too much distance
+                if (distToDest > distToDestFromZone + 300) return; // Too much detour
+                
+                // Check bearing toward destination
+                const offsetBearingToDest = google.maps.geometry.spherical.computeHeading(offset, endLoc);
+                let angleDiff = Math.abs(offsetBearingToDest - bearingToDest);
+                if (angleDiff > 180) angleDiff = 360 - angleDiff;
+                const movesTowardDest = angleDiff < 60; // Within 60 degrees
+                
+                // Score: prioritize safety, then destination direction, then minimal detour
+                const safetyScore = zoneDist * 2; // Safety is most important
+                const directionScore = movesTowardDest ? 100 : 0;
+                const detourPenalty = Math.max(0, (distToDest - distToDestFromZone) * 0.5);
+                const score = safetyScore + directionScore - detourPenalty;
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestWaypoint = offset;
                 }
             });
             
-            console.log(`Added ${waypoints.length} avoidance waypoints`);
-            return waypoints;
+            if (!bestWaypoint || bestScore < 200) {
+                console.log('Could not find safe waypoint for construction zone');
+                return [];
+            }
+            
+            // Verify final waypoint doesn't backtrack
+            const finalDist = google.maps.geometry.spherical.computeDistanceBetween(startLoc, bestWaypoint);
+            const zoneDistFromStart = google.maps.geometry.spherical.computeDistanceBetween(startLoc, intersectionPoint);
+            
+            if (finalDist < zoneDistFromStart - 100) {
+                console.log('Waypoint would cause backtracking, skipping');
+                return [];
+            }
+            
+            console.log(`Created 1 waypoint to avoid critical construction zone (size: ${criticalZone.zoneSize.toFixed(0)}m)`);
+            return [{
+                location: bestWaypoint,
+                stopover: false
+            }];
         }
         
         function checkRouteIntersections(routePath) {
@@ -1720,4 +1628,6 @@
     </script>
 
 </body>
+</html>
+
 </html>
