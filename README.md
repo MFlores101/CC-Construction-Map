@@ -1,5 +1,39 @@
 # CC-Construction-Map
-Using AI API's to find and avoid construction in the greater Corpus area. For the 2025 Islander Hackathon.
+# 🚦 2025 Islander Hackathon Project  
+## 🧠 Corpus Christi Road Construction AI  
+
+### 👥 Team Information  
+**Team Name:** MRRC  
+**Team Members:** Christian Estrada, Michael Flores, Rean Supena, Ricardo Vela  
+
+---
+
+### 📍 Project Overview  
+For the **2025 Islander Hackathon**, our team developed a program addressing the ongoing issue of **road construction across Corpus Christi**. 🏗️  
+
+This project leverages **AI-powered APIs** 🤖 to **detect and help users avoid construction zones** throughout the greater Corpus area. By improving public awareness of road closures, the system aims to **reduce traffic congestion** 🚗💨 and enhance **commute efficiency** 🚦.  
+
+---
+
+### 💼 Purpose  
+Our solution performs a valuable **civic service** by integrating the capabilities of **OpenAI** 🧠 and **Geocode** 🗺️ APIs — combining intelligent language processing with geospatial mapping technology to deliver accurate, real-time information to users.  
+
+---
+
+### ⚙️ Challenges  
+One of the most significant challenges encountered during development was managing **false positives** ⚠️ produced by OpenAI’s API when interpreting Geocode data. This proved difficult because the two systems did not initially integrate as smoothly as anticipated.  
+
+---
+
+### 🚀 Future Plans  
+Looking ahead 🔭, our team plans to **further refine and expand** the project to achieve its full potential. Due to the **limited timeframe** ⏳ of the hackathon, we simplified several planned features to ensure functionality and meet submission requirements.  
+
+Despite these limitations, we are committed to **continuing development** and realizing the complete vision for this application. 💪✨  
+
+---
+
+### 🏁 Summary  
+This project demonstrates how **AI and mapping technologies** can be combined to provide real-world, practical solutions that improve community mobility and public awareness. 🌎💡  
 
 ## Features
 
