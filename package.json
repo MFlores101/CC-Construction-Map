@@ -1,0 +1,13 @@
+{
+  "name": "cc-construction-map",
+  "version": "1.0.0",
+  "description": "Construction map for Corpus Christi using AI APIs",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "python3 server.py"
+  },
+  "engines": {
+    "node": ">=14.x"
+  }
+}
+
